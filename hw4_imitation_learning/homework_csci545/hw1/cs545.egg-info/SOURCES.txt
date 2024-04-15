@@ -1,0 +1,6 @@
+README.md
+setup.py
+cs545.egg-info/PKG-INFO
+cs545.egg-info/SOURCES.txt
+cs545.egg-info/dependency_links.txt
+cs545.egg-info/top_level.txt

@@ -1,0 +1,100 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import math
+
+Q = 1
+R = 0.5
+
+def plot_prediction(t, ground_truth, predict_mean, predict_cov):
+    """
+    Plot ground truth vs. predicted value.
+
+    :param t: 1-dimensional array representing timesteps, in seconds.
+    :param ground_truth: 100x2 array of ground truth values
+    :param predict_mean: 100x2 array of mean vectors
+    :param predict_cov: 100x2x2 array of covariance matrices
+    """
+    ground_truth = np.array(ground_truth)
+    predict_mean = np.array(predict_mean)
+    predict_cov = np.array(predict_cov)
+    
+    gt_x, gt_a = ground_truth[:, 0, :], ground_truth[:, 1, :]
+    pred_x, pred_a = predict_mean[:, 0, 0], predict_mean[:, 1, 0]
+    pred_x_std = np.sqrt(predict_cov[:, 0, 0])
+    pred_a_std = np.sqrt(predict_cov[:, 1, 1])
+
+    plt.figure(figsize=(7, 10))
+    plt.subplot(211)
+    plt.plot(t, gt_x, color='k')
+    plt.plot(t, pred_x, color='g')
+    plt.fill_between(
+    t,
+    pred_x-pred_x_std,
+    pred_x+pred_x_std,
+    color='g',
+    alpha=0.5)
+    plt.legend(("ground_truth", "prediction"))
+    plt.xlabel("time (s)")
+    plt.ylabel(r"$x$")
+    plt.title(r"EKF estimation: $x$")
+
+    plt.subplot(212)
+    plt.plot(t, gt_a, color='k')
+    plt.plot(t, pred_a, color='g')
+    plt.fill_between(
+    t,
+    pred_a-pred_a_std,
+    pred_a+pred_a_std,
+    color='g',
+    alpha=0.5)
+    plt.legend(("ground_truth", "prediction"))
+    plt.xlabel("time (s)")
+    plt.ylabel(r"$\alpha$")
+    plt.title(r"EKF estimation: $\alpha$")
+
+    plt.show()
+
+def extended_kalman_filter(m_t1, cov_t1, z_t, G_t):
+    
+    bel_m_t = np.dot(np.array([[m_t1[1][0], 0], [0, 1]]), np.array([[m_t1[0][0]], [m_t1[1][0]]])) # 2x1
+    H_t = np.array(bel_m_t / np.sqrt(bel_m_t**2 + 1)).reshape(1,2) # 1x2
+    h = np.array(np.sqrt(bel_m_t**2 + 1)).reshape(1,2)  # 1x2
+    
+    bel_cov_t = np.dot(np.dot(G_t, cov_t1), np.transpose(G_t)) + R * np.eye(np.dot(np.dot(G_t, cov_t1), np.transpose(G_t)).shape[0]) #2x2
+    K_t = np.dot(np.dot(bel_cov_t, np.transpose(H_t)), np.linalg.inv(np.dot(np.dot(H_t, bel_cov_t), np.transpose(H_t)) + Q)) # 2x1
+    m_t = bel_m_t + np.dot(K_t, (z_t - h[0][0])).reshape(2,1)
+    I = np.eye(np.dot(K_t, H_t).shape[0]) # identity matrix of specified size
+    cov_t = np.dot((I - np.dot(K_t, H_t)), bel_cov_t)
+    return m_t, cov_t
+
+if __name__ == "__main__":
+    
+    # Initial belief state of Kalman Filter, mean and covariance
+    m_t = np.array([[1], [2]]) # [[m_0], [alpha]]
+    x_t = np.array([[2], [0.1]]) # true states, [[x(0)], [alpha]]
+    cov_t = np.array([[2, 0], [0, 2]])
+    T = range(20) # time range
+
+    A = np.array([[x_t[0][0], 0], [0, 1]])
+    
+    ground_truth = [x_t]
+    noisy_data = np.array([])
+
+    w_t = np.random.normal(0, R, 100).reshape(100, 1) # w(t): zero-mean Gaussian process noise with variance R = 0.5
+    v_t = np.random.normal(0, Q, 100).reshape(100, 1) # v(t): zero-mean Gaussian sensor noise with variance Q = 1.0
+
+    # ground truth
+    for i in range(19):
+        x_t = np.dot(A, x_t) + np.array([[1], [0]]) * w_t[i]
+        ground_truth.append(x_t)
+
+    predict_mean = [m_t]
+    predict_cov = [cov_t]
+    for i in range(19): 
+        z_t = np.sqrt(ground_truth[i][0]**2 + 1) + v_t[i] # 1x1
+        G_t = np.array([[m_t[1][0], ground_truth[i][0][0]], [0, 1]]) # 2x2
+        m_t, cov_t = extended_kalman_filter(m_t, cov_t, z_t, G_t)
+        predict_mean.append(m_t)
+        predict_cov.append(cov_t)
+    plot_prediction(T, ground_truth, predict_mean, predict_cov)
+  
