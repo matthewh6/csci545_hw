@@ -1,1 +1,1 @@
-Homework and lab assignments for [CSCI 545: Introduction to Robotics with Prof. Daniel Seita](https://danielseita.github.io/cs545-sp2024.html) (Sp2024)
+Homework and lab assignments for [CSCI 545: Introduction to Robotics with Prof. Daniel Seita](https://danielseita.github.io/cs545-sp2024.html) (Sp2024). Assignments include implementations of common robotics algorithms including imitation learning, Kalman filtering, and Rapidly-exploring Random Trees (RRT).
